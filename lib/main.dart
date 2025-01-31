@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages.dart';
+import 'dashboard.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,7 +51,7 @@ class _RootPageState extends State<RootPage> {
   Widget _getPageContent(int index) {
     switch (index) {
       case 0:
-        return const DashBoardPage(); // Return HomePage widget
+        return const Dashboard(); // Return HomePage widget
       case 1:
         return const RegisterPage(); // Return FavoritesPage widget
       default:
