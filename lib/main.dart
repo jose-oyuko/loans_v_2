@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 // import 'pages.dart';
 import 'dashboard.dart';
 import 'register.dart';
+import 'customers_details.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,6 +56,8 @@ class _RootPageState extends State<RootPage> {
         return const Dashboard();
       case 1:
         return const Register();
+      case 2:
+        return const TableData();
       default:
         return Center(
             child: Text('Page $index',
