@@ -57,7 +57,7 @@ class _RootPageState extends State<RootPage> {
       case 1:
         return const Register();
       case 2:
-        return const TableData();
+        return CustomersTable;
       default:
         return Center(
             child: Text('Page $index',
