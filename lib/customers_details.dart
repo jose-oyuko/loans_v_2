@@ -1,109 +1,9 @@
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-final List<Map<String, dynamic>> customers = [
-  {
-    "firstName": "PAUL",
-    "idNumber": 1300422,
-    "lastName": "JONATHAN",
-    "phoneNumber": 743098349
-  },
-  {
-    "firstName": "JORAM TONGO BOXER BM 150 KMFT 610G RED ",
-    "idNumber": 1944588,
-    "lastName": "FROM LWANDETI\\MUTUA BODA LWANDETI STAGE MAIN",
-    "phoneNumber": 795196049
-  },
-  {
-    "firstName": "MESHACK SOTSI MUNGALA 0714234652",
-    "idNumber": 1945215,
-    "lastName": "FROM LWANDETI /MUNIALO MARKET",
-    "phoneNumber": 795193290
-  },
-  {
-    "firstName": "RAZZYNAH",
-    "idNumber": 1945371,
-    "lastName": "KOMBI",
-    "phoneNumber": 706234626
-  },
-  {
-    "firstName": "MARY ",
-    "idNumber": 1945487,
-    "lastName": "SIRENGO",
-    "phoneNumber": 792893001
-  },
-  {
-    "firstName": "ALICE NEKESA",
-    "idNumber": 6295098,
-    "lastName": "THOMSON FROM MKHONJE ASS MUTUPA",
-    "phoneNumber": 790081433
-  },
-  {
-    "firstName": "EDSON",
-    "idNumber": 6306430,
-    "lastName": "KISINDAYI",
-    "phoneNumber": 705500371
-  },
-  {
-    "firstName": "REUBEN",
-    "idNumber": 6971824,
-    "lastName": "MATAYO",
-    "phoneNumber": 796045894
-  },
-  {
-    "firstName": "ANDRANO",
-    "idNumber": 6988091,
-    "lastName": "ATSANGO BODA LUMAMA STAGE LUMAMA  ASS PETER WASIKE",
-    "phoneNumber": 748816717
-  },
-  {
-    "firstName": "RUTH NAMACHANJA",
-    "idNumber": 7596634,
-    "lastName": "WALUCHO  ASS KHAKASA",
-    "phoneNumber": 114808872
-  },
-  {
-    "firstName": "ESTHER NECHESA",
-    "idNumber": 7598204,
-    "lastName": "T MUSAMALI ASS KHAKASA",
-    "phoneNumber": 702392751
-  },
-  {
-    "firstName": "WANYONYI",
-    "idNumber": 7891616,
-    "lastName": "WAfula",
-    "phoneNumber": 706907271
-  },
-  {
-    "firstName": "PAUL KILASI WANYAMA HLX 125 KMEA 532U RED",
-    "idNumber": 8636460,
-    "lastName": "FROM MAYOYO BODA LWANDETI",
-    "phoneNumber": 727886987
-  },
-  {
-    "firstName": "CHRISPINUS TOM ANDOBE HLX 125 KMEH 473V BLUE",
-    "idNumber": 8714914,
-    "lastName": "FROM CHEKALINI BODA STANDIKISA STAGE",
-    "phoneNumber": 746880730
-  },
-  {
-    "firstName": "SAKWA NDOLI 0797148320",
-    "idNumber": 8836067,
-    "lastName": "FROM LWANDETI",
-    "phoneNumber": 722112126
-  },
-  {
-    "firstName": "JOICE ALIVIN",
-    "idNumber": 9508747,
-    "lastName": "WANJALA BODA OFUSA MATURU",
-    "phoneNumber": 791928468
-  },
-  {
-    "firstName": "PATRICK BUSOLO",
-    "idNumber": 9620675,
-    "lastName": "MULATI FROM MAHANGA",
-    "phoneNumber": 715190326
-  },
-];
+var baseUrl = dotenv.env['BASE_URL'];
 
 class TableData extends StatefulWidget {
   final List<Map<String, dynamic>> data;
@@ -169,22 +69,25 @@ class _TableDataState extends State<TableData> {
           ),
         ),
         Expanded(
-            child: SingleChildScrollView(
-          child: PaginatedDataTable(
-            header: const Text("Data Table"),
-            columns: columns,
-            source: _MapDataTableSource(filteredData, headers),
-            rowsPerPage: widget.rowsPerPage,
+          child: SingleChildScrollView(
+            child: PaginatedDataTable(
+              header: const Text("Data Table"),
+              columns: columns,
+              source: _MapDataTableSource(filteredData, headers),
+              rowsPerPage: widget.rowsPerPage,
+              showCheckboxColumn: false,
+            ),
           ),
-        )),
+        ),
       ],
     );
   }
 }
 
 class _MapDataTableSource extends DataTableSource {
-  final List data;
-  final List headers;
+  final List<Map<String, dynamic>> data;
+  final List<String> headers;
+  int? _selectedRowIndex;
 
   _MapDataTableSource(this.data, this.headers);
 
@@ -194,12 +97,37 @@ class _MapDataTableSource extends DataTableSource {
     final row = data[index];
 
     final cells = headers
-        .map((header) => DataCell(Text(
-              row[header]?.toString() ?? '',
-              overflow: TextOverflow.ellipsis,
-            )))
+        .map(
+          (header) => DataCell(
+            InkWell(
+              onDoubleTap: () {
+                debugPrint('Row $index data: ${row.toString()}');
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  row[header]?.toString() ?? '',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ),
+        )
         .toList();
-    return DataRow.byIndex(index: index, cells: cells);
+    return DataRow.byIndex(
+      index: index,
+      selected: index == _selectedRowIndex,
+      onSelectChanged: (bool? selected) {
+        if (selected == true) {
+          _selectedRowIndex = index;
+        } else {
+          _selectedRowIndex = null;
+        }
+
+        notifyListeners();
+      },
+      cells: cells,
+    );
   }
 
   @override
@@ -212,7 +140,57 @@ class _MapDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
 
-var CustomersTable = TableData(
-  data: customers,
-  rowsPerPage: 17,
+// fetching remote data
+
+// function fetching the remote data
+Future<List<Map<String, dynamic>>> fetchRemoteData(String url) async {
+  final response = await http.get(Uri.parse(url));
+  if (response.statusCode == 200) {
+    final List<dynamic> jsonData = jsonDecode(response.body);
+    // convert to Map<String, dyanamic>
+    return jsonData.map((item) => item as Map<String, dynamic>).toList();
+  } else {
+    throw Exception('Failed to load data from');
+  }
+}
+
+// widget that uses the remote data
+class RemoteTableData extends StatelessWidget {
+  final String dataUrl;
+  final int rowsPerPage;
+
+  const RemoteTableData({
+    super.key,
+    required this.dataUrl,
+    this.rowsPerPage = 5,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: fetchRemoteData(dataUrl),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No Data availabke'));
+        } else {
+          // passing it to the table widget now when ready
+          return TableData(
+            data: snapshot.data!,
+            rowsPerPage: rowsPerPage,
+          );
+        }
+      },
+    );
+  }
+}
+
+final String customerUrl = '$baseUrl/allCustomers';
+
+var CustomersTable = RemoteTableData(
+  dataUrl: customerUrl,
+  rowsPerPage: 50,
 );
