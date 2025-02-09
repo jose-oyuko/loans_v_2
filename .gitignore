@@ -41,3 +41,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# my ignores
+.env
+test.dart
+favorites_page.dart
+home_page.dart
