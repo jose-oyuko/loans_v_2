@@ -31,6 +31,8 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> {
+  final GlobalKey<NavigatorState> _contentNavigatorKey =
+      GlobalKey<NavigatorState>();
   int _selectedIndex = 0;
 
   final List<String> buttonNames = [
@@ -48,6 +50,7 @@ class _RootPageState extends State<RootPage> {
   void _onButtonTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      _contentNavigatorKey.currentState?.popUntil((route) => route.isFirst);
     });
   }
 
@@ -110,8 +113,14 @@ class _RootPageState extends State<RootPage> {
               width: 1,
             ),
             Expanded(
-              child: _getPageContent(
-                  _selectedIndex), // Display the page content widget
+              child: Navigator(
+                key: _contentNavigatorKey,
+                onGenerateRoute: (RouteSettings settings) {
+                  return MaterialPageRoute(
+                    builder: (_) => _getPageContent(_selectedIndex),
+                  );
+                },
+              ),
             ),
           ],
         ));
