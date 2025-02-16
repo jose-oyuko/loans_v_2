@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:loans_v_2/specific_customer_page.dart';
 
 var baseUrl = dotenv.env['BASE_URL'];
 
@@ -73,7 +74,13 @@ class _TableDataState extends State<TableData> {
             child: PaginatedDataTable(
               header: const Text("Data Table"),
               columns: columns,
-              source: _MapDataTableSource(filteredData, headers),
+              source: _MapDataTableSource(filteredData, headers,
+                  onRowDoubleTap: (row) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => SpecificCustomer(rowData: row)),
+                );
+              }),
               rowsPerPage: widget.rowsPerPage,
               showCheckboxColumn: false,
             ),
@@ -87,9 +94,15 @@ class _TableDataState extends State<TableData> {
 class _MapDataTableSource extends DataTableSource {
   final List<Map<String, dynamic>> data;
   final List<String> headers;
+  final Function(Map<String, dynamic> rowData) onRowDoubleTap;
+
   int? _selectedRowIndex;
 
-  _MapDataTableSource(this.data, this.headers);
+  _MapDataTableSource(
+    this.data,
+    this.headers, {
+    required this.onRowDoubleTap,
+  });
 
   @override
   DataRow? getRow(int index) {
@@ -101,7 +114,7 @@ class _MapDataTableSource extends DataTableSource {
           (header) => DataCell(
             InkWell(
               onDoubleTap: () {
-                debugPrint('Row $index data: ${row.toString()}');
+                onRowDoubleTap(row);
               },
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
